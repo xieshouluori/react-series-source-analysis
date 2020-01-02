@@ -10,8 +10,10 @@ import {REACT_ELEMENT_TYPE} from 'shared/ReactSymbols';
 
 import ReactCurrentOwner from './ReactCurrentOwner';
 
+// 返回一个布尔值，只是对象自身属性中是否具有指定的属性
 const hasOwnProperty = Object.prototype.hasOwnProperty;
 
+// 内建保留的props
 const RESERVED_PROPS = {
   key: true,
   ref: true,
@@ -21,9 +23,14 @@ const RESERVED_PROPS = {
 
 let specialPropKeyWarningShown, specialPropRefWarningShown;
 
+// 判断ref是否存在和ref是否合法
 function hasValidRef(config) {
   if (__DEV__) {
     if (hasOwnProperty.call(config, 'ref')) {
+      /**
+       * Object.getOwnPropertyDescriptor() 方法返回指定对象上一个自有属性对应的属性描述符。（自有属性指的是直接赋予该对象的属性，不需要从原型链上进行查找的属性）
+       * get方法：获取该属性的访问器函数（getter）。如果没有访问器， 该值为undefined。
+       */
       const getter = Object.getOwnPropertyDescriptor(config, 'ref').get;
       if (getter && getter.isReactWarning) {
         return false;
@@ -33,6 +40,7 @@ function hasValidRef(config) {
   return config.ref !== undefined;
 }
 
+// 判断key是否存在和key是否合法
 function hasValidKey(config) {
   if (__DEV__) {
     if (hasOwnProperty.call(config, 'key')) {
@@ -45,8 +53,8 @@ function hasValidKey(config) {
   return config.key !== undefined;
 }
 /**
- * 将key属性添加到props中
- * 
+ * 设置key的访问器函数
+ * 不允许开发者去props上直接获取key，开发环境下，会给出警告日志。通过defineProperty方法设置key的访问器属性。
  */
 function defineKeyPropWarningGetter(props, displayName) {
   const warnAboutAccessingKey = function() {
@@ -70,8 +78,8 @@ function defineKeyPropWarningGetter(props, displayName) {
   });
 }
 /**
- * 
- * 将ref属性添加到props中
+ * 设置ref的访问器函数
+ * 不允许开发者去props上直接获取ref，开发环境下，会给出警告日志。
  */
 function defineRefPropWarningGetter(props, displayName) {
   const warnAboutAccessingRef = function() {
@@ -96,10 +104,8 @@ function defineRefPropWarningGetter(props, displayName) {
 }
 
 /**
- * Factory method to create a new React element. This no longer adheres to
- * the class pattern, so do not use new to call it. Also, instanceof check
- * will not work. Instead test $$typeof field against Symbol.for('react.element') to check
- * if something is a React Element.
+ * 使用工厂方法创建一个React 元素。而不在使用类的模式创建。
+ * 作用：使用$$typeof的值来识别是否为一个React 元素
  *
  * @param {*} type
  * @param {*} props
@@ -121,16 +127,17 @@ const ReactElement = function(type, key, ref, self, source, owner, props) {
    */
   const element = {
     // This tag allows us to uniquely identify this as a React Element
-    // 用于唯一标识react组件的标签
+    // 用于唯一标识react组件的标签，帮助我们识别这是一个 ReactElement
     $$typeof: REACT_ELEMENT_TYPE,
-
-    // Built-in properties that belong on the element
-    type: type,
+    
+    //来判断如何创建节点
+    type: type,  
+    // 内置属性
     key: key,
     ref: ref,
+    // 属性和子元素
     props: props,
 
-    // Record the component responsible for creating this element.
     // 记录创建此元素的组件
     _owner: owner,
   };
@@ -174,7 +181,7 @@ const ReactElement = function(type, key, ref, self, source, owner, props) {
       Object.freeze(element);
     }
   }
-
+  // 3、返回element对象
   return element;
 };
 
@@ -320,16 +327,14 @@ export function jsxDEV(type, config, maybeKey, source, self) {
 }
 
 /**
- * Create and return a new ReactElement of the given type.
- * See https://reactjs.org/docs/react-api.html#createelement
+ * 功能： 创建并返回给定类型的新ReactElement。
  */
 // 参数：type:元素类型 config：包含属性的对象  children：子元素
-
 
 export function createElement(type, config, children) {
   let propName;
 
-  // Reserved names are extracted
+  // 存放属性和子元素
   const props = {};
 
   let key = null;
@@ -340,7 +345,6 @@ export function createElement(type, config, children) {
   /**
    *1、 处理属性对象 config
    */
-  
   if (config != null) {
     // 判断ref属性是否存在，如果存在，赋给变量ref
     if (hasValidRef(config)) {
@@ -447,20 +451,29 @@ export function createElement(type, config, children) {
 }
 
 /**
- * Return a function that produces ReactElements of a given type.
- * See https://reactjs.org/docs/react-api.html#createfactory
+ * 功能：返回用于生成指定类型 React 元素的函数 （此函数已废弃）
+ * 建议使用 JSX 或直接调用 React.createElement() 来替代它。
  */
+// 参数：type 可以是标签名字符串（eg：div、span）、React组件类型（class组件或函数组件）、React fragment类型
 export function createFactory(type) {
+  /**
+   * 1、 执行createElement方法
+   * Function.prototype.bind() 返回一个原函数的拷贝，并拥有指定的 this 值和初始参数。不会立马执行。
+   * 在 bind() 被调用时，这个新函数的 this 被指定为 bind() 的第一个参数，而其余参数将作为新函数的参数，供调用时使用
+  */
+
   const factory = createElement.bind(null, type);
-  // Expose the type on the factory and the prototype so that it can be
-  // easily accessed on elements. E.g. `<Foo />.type === Foo`.
-  // This should not be named `constructor` since this may not be the function
-  // that created the element, and it may not even be a constructor.
-  // Legacy hook: remove it
+ 
+  /**
+   * 2、 将type属性暴露给factory，以方便从元素上直接访问该type属性 E.g. `<Foo />.type === Foo`
+  */
   factory.type = type;
   return factory;
 }
 
+/**
+ * 功能： 以 element 元素为样板克隆并返回新的 React 元素,并修改原始元素的key
+ */
 export function cloneAndReplaceKey(oldElement, newKey) {
   const newElement = ReactElement(
     oldElement.type,
@@ -476,8 +489,9 @@ export function cloneAndReplaceKey(oldElement, newKey) {
 }
 
 /**
- * Clone and return a new ReactElement using element as the starting point.
- * See https://reactjs.org/docs/react-api.html#cloneelement
+ *功能： 以 element 元素为样板克隆并返回新的 React 元素
+ * 返回元素的 props 是将新的 props 与原始元素的 props 浅层合并后的结果。新的子元素将取代现有的子元素，而来自原始元素的 key 和 ref 将被保留。
+ * 应用：把子组件需要的属性和回调函数通过cloneElement的方式merge进去。从一定程度上减少代码的重复书写
  */
 export function cloneElement(element, config, children) {
   invariant(
@@ -488,10 +502,10 @@ export function cloneElement(element, config, children) {
 
   let propName;
 
-  // Original props are copied
+  //1、复制原始元素的props生成新的props对象。
   const props = Object.assign({}, element.props);
 
-  // Reserved names are extracted
+  //2、提取原始元素的key、ref、self、source （提取内建props相关的值）
   let key = element.key;
   let ref = element.ref;
   // Self is preserved since the owner is preserved.
@@ -504,6 +518,7 @@ export function cloneElement(element, config, children) {
   // Owner will be preserved, unless ref is overridden
   let owner = element._owner;
 
+  //3、 处理config
   if (config != null) {
     if (hasValidRef(config)) {
       // Silently steal the ref from the parent.
@@ -514,7 +529,7 @@ export function cloneElement(element, config, children) {
       key = '' + config.key;
     }
 
-    // Remaining properties override existing props
+    // 剩余属性覆盖旧元素上的属性
     let defaultProps;
     if (element.type && element.type.defaultProps) {
       defaultProps = element.type.defaultProps;
@@ -534,8 +549,7 @@ export function cloneElement(element, config, children) {
     }
   }
 
-  // Children can be more than one argument, and those are transferred onto
-  // the newly allocated props object.
+  //4、 处理子元素
   const childrenLength = arguments.length - 2;
   if (childrenLength === 1) {
     props.children = children;
@@ -546,16 +560,12 @@ export function cloneElement(element, config, children) {
     }
     props.children = childArray;
   }
-
+  // 5、通过ReactElement方法 返回一个React元素
   return ReactElement(element.type, key, ref, self, source, owner, props);
 }
-
 /**
- * Verifies the object is a ReactElement.
- * See https://reactjs.org/docs/react-api.html#isvalidelement
- * @param {?object} object
- * @return {boolean} True if `object` is a ReactElement.
- * @final
+ *功能：验证对象是否为 React 元素，返回值为 true 或 false。
+ *验证条件：为对象类型，且$$typeof属性的值为REACT_ELEMENT_TYPE
  */
 export function isValidElement(object) {
   return (

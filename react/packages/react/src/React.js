@@ -66,6 +66,9 @@ import {
   enableChunksAPI,
 } from 'shared/ReactFeatureFlags';
 const React = {
+  /**
+   * 提供了用于处理 this.props.children 不透明数据结构的实用方法。
+   */
   Children: {
     map,
     forEach,
@@ -104,6 +107,7 @@ const React = {
   createFactory: __DEV__ ? createFactoryWithValidation : createFactory,
   isValidElement: isValidElement,
 
+  //React的版本号
   version: ReactVersion,
 
   __SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED: ReactSharedInternals,

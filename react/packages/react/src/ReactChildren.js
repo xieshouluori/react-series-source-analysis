@@ -15,22 +15,26 @@ import {
 import {isValidElement, cloneAndReplaceKey} from './ReactElement';
 import ReactDebugCurrentFrame from './ReactDebugCurrentFrame';
 
+// 分割字符
 const SEPARATOR = '.';
+// 子分割字符
 const SUBSEPARATOR = ':';
 
 /**
- * Escape and wrap key so it is safe to use as a reactid
- *
- * @param {string} key to be escaped.
- * @return {string} the escaped key.
+ * 使用 =0替换字符串中的=,使用=2替换字符串中的：。
+ * 返回 "$替换后的字符串"
  */
 function escape(key) {
+  // [xyz]:匹配方括号中的任意字符
   const escapeRegex = /[=:]/g;
   const escaperLookup = {
     '=': '=0',
     ':': '=2',
   };
   const escapedString = ('' + key).replace(escapeRegex, function(match) {
+    // 返回值作为替换字符串
+    // 如果replace()的第一个参数是正则表达式，并且其为全局匹配模式，那么这个方法将被多次调用，每次匹配都会被调用。
+    console.log("match",match)
     return escaperLookup[match];
   });
 
@@ -38,25 +42,42 @@ function escape(key) {
 }
 
 /**
- * TODO: Test that a single child and an array with one item have the same key
- * pattern.
+ * 检查单个子元素和只有一个元素的数组具有相同的键值
  */
 
 let didWarnAboutMaps = false;
 
+/**
+ * 将多个“/”转换成一个“/”
+ */
 const userProvidedKeyEscapeRegex = /\/+/g;
 function escapeUserProvidedKey(text) {
+  /**
+   * str.replace(regexp|substr, newSubStr|function):返回一个部分或全部匹配由替代模式所取代的新的字符串
+   * $&	插入匹配的子串
+   */
   return ('' + text).replace(userProvidedKeyEscapeRegex, '$&/');
 }
-
+// 上下文池子的大小
 const POOL_SIZE = 10;
+// 存放上下文的池子
 const traverseContextPool = [];
+/**
+ * 获取上下文池子中的上下文
+ * @param {*} mapResult  map后的结果集
+ * @param {*} keyPrefix  键前缀
+ * @param {*} mapFunction map函数
+ * @param {*} mapContext map上下文
+ */
 function getPooledTraverseContext(
   mapResult,
   keyPrefix,
   mapFunction,
   mapContext,
 ) {
+  /**
+   * 1、当池子里有上下文数据时，弹出最后一个上下文并根据传参修改值再返回
+   */
   if (traverseContextPool.length) {
     const traverseContext = traverseContextPool.pop();
     traverseContext.result = mapResult;
@@ -66,6 +87,9 @@ function getPooledTraverseContext(
     traverseContext.count = 0;
     return traverseContext;
   } else {
+    /**
+     * 2、 当池子里没有数据时，返回根据传参新建的上下文
+     */
     return {
       result: mapResult,
       keyPrefix: keyPrefix,
@@ -75,25 +99,33 @@ function getPooledTraverseContext(
     };
   }
 }
-
+/**
+ * 释放上下文
+ * @param {*} traverseContext  被遍历到的上下文
+ */
 function releaseTraverseContext(traverseContext) {
+  /**
+   * 1、初始化传入的上下文
+   */
   traverseContext.result = null;
   traverseContext.keyPrefix = null;
   traverseContext.func = null;
   traverseContext.context = null;
   traverseContext.count = 0;
+  /**
+   * 当上下文此池子不满POOL_SIZE长度时，将初始化的上下文加入池子中。
+   */
   if (traverseContextPool.length < POOL_SIZE) {
     traverseContextPool.push(traverseContext);
   }
 }
 
 /**
- * @param {?*} children Children tree container.
- * @param {!string} nameSoFar Name of the key path so far.
- * @param {!function} callback Callback to invoke with each child found.
- * @param {?*} traverseContext Used to pass information throughout the traversal
- * process.
- * @return {!number} The number of children in this subtree.
+ * @param {?*} children 子元素集合.
+ * @param {!string} nameSoFar 键路径名称.
+ * @param {!function} callback 每个子元素调用的回调函数.
+ * @param {?*} traverseContext 遍历的时候提供信息的上下文
+ * @return {!number} 子树的个数.
  */
 function traverseAllChildrenImpl(
   children,
@@ -101,18 +133,25 @@ function traverseAllChildrenImpl(
   callback,
   traverseContext,
 ) {
+  /**
+   * 1、判断子元素容器的类型，如果为undefined和布尔值，则设置children为null
+   */
   const type = typeof children;
 
   if (type === 'undefined' || type === 'boolean') {
     // All of the above are perceived as null.
     children = null;
   }
-
+ /**
+  * 2、 根据children的类型，判定是否调用回调函数
+  */
   let invokeCallback = false;
 
   if (children === null) {
+    // children为undefined、true、false、null时，调用回调
     invokeCallback = true;
   } else {
+    // children为string、number类型时，或为REACT_ELEMENT_TYPE、REACT_PORTAL_TYPE时，调用回调
     switch (type) {
       case 'string':
       case 'number':
@@ -131,8 +170,7 @@ function traverseAllChildrenImpl(
     callback(
       traverseContext,
       children,
-      // If it's the only child, treat the name as if it was wrapped in an array
-      // so that it's consistent if the number of children grows.
+      // 如果只有一个子元素，则用数组包裹起来，以便子元素增长的时候能保存一致。
       nameSoFar === '' ? SEPARATOR + getComponentKey(children, 0) : nameSoFar,
     );
     return 1;
@@ -140,10 +178,12 @@ function traverseAllChildrenImpl(
 
   let child;
   let nextName;
-  let subtreeCount = 0; // Count of children found in the current subtree.
+  let subtreeCount = 0; // 当前子树中的子元素个数
   const nextNamePrefix =
     nameSoFar === '' ? SEPARATOR : nameSoFar + SUBSEPARATOR;
-
+/**
+ * 3、children为数组，则递归遍历子节点
+ */
   if (Array.isArray(children)) {
     for (let i = 0; i < children.length; i++) {
       child = children[i];
@@ -159,9 +199,11 @@ function traverseAllChildrenImpl(
     const iteratorFn = getIteratorFn(children);
     if (typeof iteratorFn === 'function') {
       if (__DEV__) {
-        // Warn about using Maps as children
+        //当在子节点使用Map的时候警告
         if (iteratorFn === children.entries) {
           if (!didWarnAboutMaps) {
+            // 不支持在子级使用Map，因为可能出现不可预知的结果。
+          // 请用 序列/迭代 React元素。
             console.error(
               'Using Maps as children is unsupported and will likely yield ' +
                 'unexpected results. Convert it to a sequence/iterable of keyed ' +
@@ -209,20 +251,15 @@ function traverseAllChildrenImpl(
 }
 
 /**
- * Traverses children that are typically specified as `props.children`, but
- * might also be specified through attributes:
+ *遍历通常指定`props.children`的子级，或是通过属性得到：
  *
  * - `traverseAllChildren(this.props.children, ...)`
  * - `traverseAllChildren(this.props.leftPanelChildren, ...)`
  *
- * The `traverseContext` is an optional argument that is passed through the
- * entire traversal. It can be used to store accumulations or anything else that
- * the callback might find relevant.
- *
- * @param {?*} children Children tree object.
- * @param {!function} callback To invoke upon traversing each child.
- * @param {?*} traverseContext Context for traversal.
- * @return {!number} The number of children in this subtree.
+ * @param {?*} children 子元素容器.
+ * @param {!function} callback 回调函数
+ * @param {?*} traverseContext 遍历的上下文环境
+ * @return {!number} 子树的个数.
  */
 function traverseAllChildren(children, callback, traverseContext) {
   if (children == null) {
@@ -234,42 +271,38 @@ function traverseAllChildren(children, callback, traverseContext) {
 
 /**
  * Generate a key string that identifies a component within a set.
- *
- * @param {*} component A component that could contain a manual key.
- * @param {number} index Index that is used if a manual key is not provided.
+ * 获取/生成组件中的key
+ * @param {*} component 可能包含用户自定义键的组件.
+ * @param {number} index 如果没有用户自定义的键，则需要传入组件所在位置的索引
  * @return {string}
  */
 function getComponentKey(component, index) {
-  // Do some typechecking here since we call this blindly. We want to ensure
-  // that we don't block potential future ES APIs.
+  // 为了兼容未来潜在的新ES API，这里做一些校验
   if (
     typeof component === 'object' &&
     component !== null &&
     component.key != null
   ) {
-    // Explicit key
+    // 转义组件键
     return escape(component.key);
   }
-  // Implicit key determined by the index in the set
+  // 用户没有自定义组件的键值，则根据组件在Set中的索引隐式地生成36进制的键值
   return index.toString(36);
 }
-
+/**
+ * 调用bookKeeping中的func
+ */
 function forEachSingleChild(bookKeeping, child, name) {
   const {func, context} = bookKeeping;
   func.call(context, child, bookKeeping.count++);
 }
 
 /**
- * Iterates through children that are typically specified as `props.children`.
- *
- * See https://reactjs.org/docs/react-api.html#reactchildrenforeach
- *
- * The provided forEachFunc(child, index) will be called for each
- * leaf child.
- *
- * @param {?*} children Children tree container.
- * @param {function(*, int)} forEachFunc
- * @param {*} forEachContext Context for forEachContext.
+ * 遍历props.children的子级.
+
+ * @param {?*} children 子元素容器
+ * @param {function(*, int)} 每个子元素指定的function
+ * @param {*} forEachContext 遍历时提供的上下文.
  */
 function forEachChildren(children, forEachFunc, forEachContext) {
   if (children == null) {
@@ -324,32 +357,22 @@ function mapIntoWithKeyPrefixInternal(children, array, prefix, func, context) {
 }
 
 /**
- * Maps children that are typically specified as `props.children`.
- *
- * See https://reactjs.org/docs/react-api.html#reactchildrenmap
- *
- * The provided mapFunction(child, key, index) will be called for each
- * leaf child.
- *
- * @param {?*} children Children tree container.
- * @param {function(*, int)} func The map function.
- * @param {*} context Context for mapFunction.
- * @return {object} Object containing the ordered map of results.
+ * 遍历props.children的子级。
+ * 在 children 里的每个直接子节点上调用一个函数(func)
  */
 function mapChildren(children, func, context) {
+  //1、 如果子节点为 null 或是 undefined，则此方法将返回 null 或是 undefined
   if (children == null) {
     return children;
   }
+  // 2、如果children是一个数组
   const result = [];
   mapIntoWithKeyPrefixInternal(children, result, null, func, context);
   return result;
 }
 
 /**
- * Count the number of children that are typically specified as
- * `props.children`.
- *
- * See https://reactjs.org/docs/react-api.html#reactchildrencount
+ * 返回 children 中的组件总数量，等同于通过 map 或 forEach 调用回调函数的次数
  *
  * @param {?*} children Children tree container.
  * @return {number} The number of children.
@@ -359,10 +382,7 @@ function countChildren(children) {
 }
 
 /**
- * Flatten a children object (typically specified as `props.children`) and
- * return an array with appropriately re-keyed children.
- *
- * See https://reactjs.org/docs/react-api.html#reactchildrentoarray
+ *将 children 这个复杂的数据结构以数组的方式扁平展开并返回，并为每个子节点分配
  */
 function toArray(children) {
   const result = [];
@@ -371,15 +391,9 @@ function toArray(children) {
 }
 
 /**
- * Returns the first child in a collection of children and verifies that there
- * is only one child in the collection.
+
  *
- * See https://reactjs.org/docs/react-api.html#reactchildrenonly
- *
- * The current implementation of this function assumes that a single child gets
- * passed without a wrapper, but the purpose of this helper function is to
- * abstract away the particular structure of children.
- *
+ * 验证 children 是否只有一个子节点（一个 React 元素），如果有则返回它，否则此方法会抛出错误。
  * @param {?object} children Child collection structure.
  * @return {ReactElement} The first and only `ReactElement` contained in the
  * structure.

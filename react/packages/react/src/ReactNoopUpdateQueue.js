@@ -30,7 +30,7 @@ function warnNoop(publicInstance, callerName) {
 }
 
 /**
- * This is the abstract API for an update queue.
+ * 更新队列的抽象API
  */
 const ReactNoopUpdateQueue = {
   /**
@@ -40,6 +40,7 @@ const ReactNoopUpdateQueue = {
    * @protected
    * @final
    */
+  // 检查实例是否已经挂载，返回值为 true 或 false。
   isMounted: function(publicInstance) {
     return false;
   },

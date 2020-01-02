@@ -5,56 +5,46 @@
  * LICENSE file in the root directory of this source tree.
  */
 
+ /**
+  * 该js的作用：定义并导出两个基础类 Component、PureComponent
+  */
+
 import invariant from 'shared/invariant';
 
 import ReactNoopUpdateQueue from './ReactNoopUpdateQueue';
 
 const emptyObject = {};
 if (__DEV__) {
+  // Object.freeze() 冻结一个对象。一个被冻结的对象再也不能被修改；冻结了一个对象则不能向这个对象添加新的属性，不能删除已有属性，不能修改该对象已有属性的可枚举性、可配置性、可写性，以及不能修改已有属性的值
   Object.freeze(emptyObject);
 }
 
 /**
- * Base class helpers for the updating state of a component.
+ * 
+ * 使用ES6 classes方式定义React组件的基类
  */
 function Component(props, context, updater) {
+ /**
+  * 1、 定义了四个实例属性
+  */
   this.props = props;
   this.context = context;
-  // If a component has string refs, we will assign a different object later.
   this.refs = emptyObject;
-  // We initialize the default updater but the real one gets injected by the
-  // renderer.
   this.updater = updater || ReactNoopUpdateQueue;
 }
-
+/**
+ * 2、 在原型上定义属性isReactComponent，用于辨认是否是react组件
+ */
 Component.prototype.isReactComponent = {};
 
+
 /**
- * Sets a subset of the state. Always use this to mutate
- * state. You should treat `this.state` as immutable.
- *
- * There is no guarantee that `this.state` will be immediately updated, so
- * accessing `this.state` after calling this method may return the old value.
- *
- * There is no guarantee that calls to `setState` will run synchronously,
- * as they may eventually be batched together.  You can provide an optional
- * callback that will be executed when the call to setState is actually
- * completed.
- *
- * When a function is provided to setState, it will be called at some point in
- * the future (not synchronously). It will be called with the up to date
- * component arguments (state, props, context). These values can be different
- * from this.* because your function may be called after receiveProps but before
- * shouldComponentUpdate, and this new state, props, and context will not yet be
- * assigned to this.
- *
- * @param {object|function} partialState Next partial state or function to
- *        produce next partial state to be merged with current state.
- * @param {?function} callback Called after state is updated.
- * @final
- * @protected
+ * 3、在原型上定义方法setState，用于更新state
+ * 
  */
+// 参数：partialState 可以为对象或函数，用于生成下一个状态的state； callback：状态更新之后的回调函数
 Component.prototype.setState = function(partialState, callback) {
+  // 参数校验
   invariant(
     typeof partialState === 'object' ||
       typeof partialState === 'function' ||
@@ -66,18 +56,7 @@ Component.prototype.setState = function(partialState, callback) {
 };
 
 /**
- * Forces an update. This should only be invoked when it is known with
- * certainty that we are **not** in a DOM transaction.
- *
- * You may want to call this when you know that some deeper aspect of the
- * component's state has changed but `setState` was not called.
- *
- * This will not invoke `shouldComponentUpdate`, but it will invoke
- * `componentWillUpdate` and `componentDidUpdate`.
- *
- * @param {?function} callback Called after update is complete.
- * @final
- * @protected
+ *4、 在原型上定义方法forceUpdate ：强制更新
  */
 Component.prototype.forceUpdate = function(callback) {
   this.updater.enqueueForceUpdate(this, callback, 'forceUpdate');
@@ -123,21 +102,28 @@ if (__DEV__) {
 function ComponentDummy() {}
 ComponentDummy.prototype = Component.prototype;
 
+
 /**
- * Convenience component with default shallow equality check for sCU.
+ * React.PureComponent 与 React.Component 很相似。两者的区别在于 React.Component 并未实现 shouldComponentUpdate()，而 React.PureComponent 中以浅层对比 prop 和 state 的方式来实现了该函数。
+ * React.PureComponent 中的 shouldComponentUpdate() 仅作对象的浅层比较。如果对象中包含复杂的数据结构，则有可能因为无法检查深层的差别，产生错误的比对结果。
+ * 仅在你的 props 和 state 较为简单时，才使用 React.PureComponent，或者在深层数据结构发生变化时调用 forceUpdate() 来确保组件被正确地更新。你也可以考虑使用 immutable 对象加速嵌套数据的比较。
+ * React.PureComponent 中的 shouldComponentUpdate() 将跳过所有子组件树的 prop 更新。因此，请确保所有子组件也都是“纯”的组件。
  */
 function PureComponent(props, context, updater) {
   this.props = props;
   this.context = context;
-  // If a component has string refs, we will assign a different object later.
   this.refs = emptyObject;
   this.updater = updater || ReactNoopUpdateQueue;
 }
-
+/**
+ * 寄生组合式继承
+*ComponentDummy的作用就是断开对于Component.prototype的引用，这样在修改PureComponent的原型链方法的时候不会对Component造成影响，同时为了避免原型链的跳跃，做了一个Object.assign(pureComponentPrototype, Component.prototype);的处理。
+ */
 const pureComponentPrototype = (PureComponent.prototype = new ComponentDummy());
 pureComponentPrototype.constructor = PureComponent;
-// Avoid an extra prototype jump for these methods.
+// Object.assign() 方法用于将所有可枚举属性的值从一个或多个源对象复制到目标对象。它将返回目标对象。
 Object.assign(pureComponentPrototype, Component.prototype);
+// isPureComponent 属性便于 React-dom 辨认是否是纯组件
 pureComponentPrototype.isPureReactComponent = true;
 
 export {Component, PureComponent};
