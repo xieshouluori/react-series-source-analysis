@@ -96,10 +96,13 @@ const React = {
   useReducer,
   useRef,
   useState,
-
+  // React.Fragment 组件能够在不额外创建 DOM 元素的情况下，让 render() 方法中返回多个元素。使用其简写语法 <></>
   Fragment: REACT_FRAGMENT_TYPE,
+  // Profiler 测量渲染一个 React 应用多久渲染一次以及渲染一次的“代价”。 它的目的是识别出应用中渲染较慢的部分
   Profiler: REACT_PROFILER_TYPE,
+  //严格模式,仅在开发模式下运行；它们不会影响生产构建。用来突出显示应用程序中潜在问题的工具
   StrictMode: REACT_STRICT_MODE_TYPE,
+  // React.Suspense 可以指定加载指示器（loading indicator），以防其组件树中的某些子组件尚未具备渲染条件。目前，懒加载组件是 <React.Suspense> 支持的唯一用例。
   Suspense: REACT_SUSPENSE_TYPE,
 
   createElement: __DEV__ ? createElementWithValidation : createElement,

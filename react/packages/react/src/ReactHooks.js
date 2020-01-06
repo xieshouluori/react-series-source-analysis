@@ -17,8 +17,11 @@ import {REACT_RESPONDER_TYPE} from 'shared/ReactSymbols';
 
 import ReactCurrentDispatcher from './ReactCurrentDispatcher';
 
+
 function resolveDispatcher() {
+  // 获取了 ReactCurrentDispatcher 的 current 属性。
   const dispatcher = ReactCurrentDispatcher.current;
+  // 当这个属性值为空时报错，否则返回这个对象。
   invariant(
     dispatcher !== null,
     'Invalid hook call. Hooks can only be called inside of the body of a function component. This could happen for' +
