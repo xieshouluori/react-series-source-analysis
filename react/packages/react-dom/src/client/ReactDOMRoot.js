@@ -49,12 +49,18 @@ import {BlockingRoot, ConcurrentRoot, LegacyRoot} from 'shared/ReactRootTags';
 function ReactDOMRoot(container: DOMContainer, options: void | RootOptions) {
   this._internalRoot = createRootImpl(container, ConcurrentRoot, options);
 }
-
+/**
+ * DOMBlockingRoot构造函数，包含一个实例属性_internalRoot
+ * @param {*} container 
+ * @param {*} tag 
+ * @param {*} options 
+ */
 function ReactDOMBlockingRoot(
   container: DOMContainer,
   tag: RootTag,
   options: void | RootOptions,
 ) {
+  // 调用createRootImpl创建初始化Root
   this._internalRoot = createRootImpl(container, tag, options);
 }
 
@@ -87,6 +93,12 @@ ReactDOMRoot.prototype.unmount = ReactDOMBlockingRoot.prototype.unmount = functi
   });
 };
 
+/**
+ * 创建Root
+ * @param {*} container 
+ * @param {*} tag 
+ * @param {*} options 
+ */
 function createRootImpl(
   container: DOMContainer,
   tag: RootTag,
@@ -96,7 +108,9 @@ function createRootImpl(
   const hydrate = options != null && options.hydrate === true;
   const hydrationCallbacks =
     (options != null && options.hydrationOptions) || null;
+  // 创建创建FiberRoot 
   const root = createContainer(container, tag, hydrate, hydrationCallbacks);
+  
   markContainerAsRoot(root.current, container);
   if (hydrate && tag !== LegacyRoot) {
     const doc =
@@ -136,9 +150,11 @@ export function createLegacyRoot(
   container: DOMContainer,
   options?: RootOptions,
 ): RootType {
+  // 返回创建的ReactDOMBlockingRoot的实例
   return new ReactDOMBlockingRoot(container, LegacyRoot, options);
 }
 
+// 判断容器是否是 元素节点/文档节点/文档片段节点/注释节点
 export function isValidContainer(node: mixed): boolean {
   return !!(
     node &&

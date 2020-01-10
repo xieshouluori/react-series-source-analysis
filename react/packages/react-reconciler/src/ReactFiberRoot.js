@@ -29,15 +29,22 @@ import {initializeUpdateQueue} from './ReactUpdateQueue';
 
 export type PendingInteractionMap = Map<ExpirationTime, Set<Interaction>>;
 
-type BaseFiberRootProperties = {|
+
+/**
+ * FiberRoot
+ */
+type BaseFiberRootProperties = {
   // The type of root (legacy, batched, concurrent, etc.)
   tag: RootTag,
 
   // Any additional information from the host associated with this root.
+  // root节点，render方法接收的第二个参数
   containerInfo: any,
   // Used only by persistent updates.
+  // 只有在持久更新中会用到，也就是不支持增量更新的平台，react-dom不会用到
   pendingChildren: any,
   // The currently active root fiber. This is the mutable root of the tree.
+   // 当前应用对应的Fiber对象，是Root Fiber
   current: Fiber,
 
   pingCache:
@@ -47,14 +54,19 @@ type BaseFiberRootProperties = {|
 
   finishedExpirationTime: ExpirationTime,
   // A finished work-in-progress HostRoot that's ready to be committed.
+  // 已经完成的任务的FiberRoot对象，如果你只有一个Root，那他永远只可能是这个Root对应的Fiber，或者是null
+  // 在commit阶段只会处理这个值对应的任务
   finishedWork: Fiber | null,
   // Timeout handle returned by setTimeout. Used to cancel a pending timeout, if
   // it's superseded by a new one.
+  // 在任务被挂起的时候通过setTimeout设置的返回内容，用来下一次如果有新的任务挂起时清理还没触发的timeout
   timeoutHandle: TimeoutHandle | NoTimeout,
   // Top context object, used by renderSubtreeIntoContainer
+  // 顶层context对象，只有主动调用`renderSubtreeIntoContainer`时才会有用
   context: Object | null,
   pendingContext: Object | null,
   // Determines if we should attempt to hydrate on the initial mount
+   // 用来确定第一次渲染的时候是否需要融合
   +hydrate: boolean,
   // Node returned by Scheduler.scheduleCallback
   callbackNode: *,
@@ -62,6 +74,12 @@ type BaseFiberRootProperties = {|
   callbackExpirationTime: ExpirationTime,
   // Priority of the callback associated with this root
   callbackPriority: ReactPriorityLevel,
+  /**
+   * 优先级是用来区分
+  // 1) 没有提交(committed)的任务
+  // 2) 没有提交的挂起任务
+  // 3) 没有提交的可能被挂起的任务
+   */
   // The earliest pending expiration time that exists in the tree
   firstPendingTime: ExpirationTime,
   // The earliest suspended expiration time that exists in the tree
@@ -132,20 +150,31 @@ function FiberRootNode(containerInfo, tag, hydrate) {
     this.hydrationCallbacks = null;
   }
 }
-
+/**
+ * 创建FiberRoot
+ * @param {*} containerInfo 
+ * @param {*} tag 
+ * @param {*} hydrate 
+ * @param {*} hydrationCallbacks 
+ */
 export function createFiberRoot(
   containerInfo: any,
   tag: RootTag,
   hydrate: boolean,
   hydrationCallbacks: null | SuspenseHydrationCallbacks,
 ): FiberRoot {
+  /**
+   * 创建root 返回FiberRootNode的实例（包含多个属性）
+   */
   const root: FiberRoot = (new FiberRootNode(containerInfo, tag, hydrate): any);
   if (enableSuspenseCallback) {
     root.hydrationCallbacks = hydrationCallbacks;
   }
 
-  // Cyclic construction. This cheats the type system right now because
-  // stateNode is any.
+
+  /**
+   * 创建uninitializedFiber
+   */
   const uninitializedFiber = createHostRootFiber(tag);
   root.current = uninitializedFiber;
   uninitializedFiber.stateNode = root;

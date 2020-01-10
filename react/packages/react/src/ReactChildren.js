@@ -62,6 +62,7 @@ function escapeUserProvidedKey(text) {
 const POOL_SIZE = 10;
 // 存放上下文的池子
 const traverseContextPool = [];
+
 /**
  * 获取上下文池子中的上下文
  * @param {*} mapResult  map后的结果集
@@ -105,7 +106,7 @@ function getPooledTraverseContext(
  */
 function releaseTraverseContext(traverseContext) {
   /**
-   * 1、初始化传入的上下文
+   * 1、初始化传入的上下文（清空当前的context对象）
    */
   traverseContext.result = null;
   traverseContext.keyPrefix = null;
@@ -165,7 +166,7 @@ function traverseAllChildrenImpl(
         }
     }
   }
-
+  // callback即mapSingleChildIntoContext方法
   if (invokeCallback) {
     callback(
       traverseContext,
@@ -183,6 +184,7 @@ function traverseAllChildrenImpl(
     nameSoFar === '' ? SEPARATOR : nameSoFar + SUBSEPARATOR;
 /**
  * 3、children为数组，则递归遍历子节点
+ * 对于可循环的children，都会重复调用traverseAllChildrenImpl，直到是一个节点的情况，然后调用callback
  */
   if (Array.isArray(children)) {
     for (let i = 0; i < children.length; i++) {
@@ -318,13 +320,19 @@ function forEachChildren(children, forEachFunc, forEachContext) {
   releaseTraverseContext(traverseContext);
 }
 
+
+
 function mapSingleChildIntoContext(bookKeeping, child, childKey) {
   const {result, keyPrefix, func, context} = bookKeeping;
-
+  
+  // 调用并执行React.Children.map(children, callback)这里的callback
   let mappedChild = func.call(context, child, bookKeeping.count++);
+  //如果map之后的节点还是一个数组，那么再次进入mapIntoWithKeyPrefixInternal
+  // (那么这个时候我们就会再次从pool里面去context了，而pool的意义大概也就是在这里了，如果循环嵌套多了，可以减少很多对象创建和gc的损耗。)
   if (Array.isArray(mappedChild)) {
     mapIntoWithKeyPrefixInternal(mappedChild, result, childKey, c => c);
   } else if (mappedChild != null) {
+    // 如果不是数组并且是一个合规的ReactElement，就触达顶点了，替换一下key就推入result了
     if (isValidElement(mappedChild)) {
       mappedChild = cloneAndReplaceKey(
         mappedChild,
@@ -340,12 +348,14 @@ function mapSingleChildIntoContext(bookKeeping, child, childKey) {
     result.push(mappedChild);
   }
 }
-
+// 参数：children, result, null, func, context
 function mapIntoWithKeyPrefixInternal(children, array, prefix, func, context) {
   let escapedPrefix = '';
   if (prefix != null) {
     escapedPrefix = escapeUserProvidedKey(prefix) + '/';
   }
+
+  // getPooledTraverseContext就是从pool里面找一个对象，releaseTraverseContext会把当前的context对象清空然后放回到pool中
   const traverseContext = getPooledTraverseContext(
     array,
     escapedPrefix,

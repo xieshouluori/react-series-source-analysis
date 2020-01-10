@@ -307,7 +307,11 @@ export function requestCurrentTimeForUpdate() {
 export function getCurrentTime() {
   return msToExpirationTime(now());
 }
-
+/**
+ * @param {*} currentTime 
+ * @param {*} fiber 
+ * @param {*} suspenseConfig 
+ */
 export function computeExpirationForFiber(
   currentTime: ExpirationTime,
   fiber: Fiber,

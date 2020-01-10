@@ -33,7 +33,15 @@ function resolveDispatcher() {
   );
   return dispatcher;
 }
-
+/**
+ * useContext
+ * 使用 const value = useContext(MyContext);接收一个 context 对象（React.createContext 的返回值）并返回该 context 的当前值
+ * 当前的 context 值由上层组件中距离当前组件最近的 <MyContext.Provider> 的 value prop 决定。
+ * 调用了 useContext 的组件总会在 context 值变化时重新渲染。
+ * @param {*} Context  createContext 返回的结果
+ * @param {*} unstable_observedBits  计算新老 context 变化相关的参数，保留为将来使用，
+ * @returns {*} 返回的是 context 的当前值
+ */
 export function useContext<T>(
   Context: ReactContext<T>,
   unstable_observedBits: number | boolean | void,

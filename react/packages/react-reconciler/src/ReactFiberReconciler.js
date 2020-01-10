@@ -210,16 +210,25 @@ function findHostInstanceWithWarning(
   }
   return findHostInstance(component);
 }
-
+/**
+ * 创建FiberRoot
+ * @param {*} containerInfo 
+ * @param {*} tag 
+ * @param {*} hydrate 
+ * @param {*} hydrationCallbacks 
+ */
 export function createContainer(
   containerInfo: Container,
   tag: RootTag,
   hydrate: boolean,
   hydrationCallbacks: null | SuspenseHydrationCallbacks,
 ): OpaqueRoot {
+  // 创建FiberRoot
   return createFiberRoot(containerInfo, tag, hydrate, hydrationCallbacks);
 }
-
+/**
+ * 更新容器
+ */
 export function updateContainer(
   element: ReactNodeList,
   container: OpaqueRoot,
@@ -230,6 +239,7 @@ export function updateContainer(
     onScheduleRoot(container, element);
   }
   const current = container.current;
+  // 计算更新开始的时间
   const currentTime = requestCurrentTimeForUpdate();
   if (__DEV__) {
     // $FlowExpectedError - jest isn't a global, and isn't recognized outside of tests
@@ -239,6 +249,7 @@ export function updateContainer(
     }
   }
   const suspenseConfig = requestCurrentSuspenseConfig();
+  //计算过期时间，这是React优先级更新非常重要的点。
   const expirationTime = computeExpirationForFiber(
     currentTime,
     current,

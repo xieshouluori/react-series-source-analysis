@@ -108,13 +108,21 @@ import invariant from 'shared/invariant';
 import {getCurrentPriorityLevel} from './SchedulerWithReactIntegration';
 
 export type Update<State> = {
+  // 更新的过期时间
   expirationTime: ExpirationTime,
   suspenseConfig: null | SuspenseConfig,
-
+  
+  // export const UpdateState = 0;
+  // export const ReplaceState = 1;
+  // export const ForceUpdate = 2;
+  // export const CaptureUpdate = 3;
+  // 指定更新的类型，值为以上几种
   tag: 0 | 1 | 2 | 3,
+  // 更新内容，比如`setState`接收的第一个参数
   payload: any,
+   // 对应的回调，`setState`，`render`都有
   callback: (() => mixed) | null,
-
+// 指向下一个更新
   next: Update<State>,
 
   //DEV only
@@ -126,6 +134,7 @@ type SharedQueue<State> = {
 };
 
 export type UpdateQueue<State> = {
+  // 每次操作完更新之后的`state`
   baseState: State,
   baseQueue: Update<State> | null,
   shared: SharedQueue<State>,

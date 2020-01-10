@@ -127,7 +127,7 @@ const ReactElement = function(type, key, ref, self, source, owner, props) {
    */
   const element = {
     // This tag allows us to uniquely identify this as a React Element
-    // 用于唯一标识react组件的标签，帮助我们识别这是一个 ReactElement
+    // 用于唯一标识react组件的标签。用于确定是否属于ReactElement
     $$typeof: REACT_ELEMENT_TYPE,
     
     //来判断如何创建节点
