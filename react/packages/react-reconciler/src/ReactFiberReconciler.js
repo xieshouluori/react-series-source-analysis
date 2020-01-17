@@ -212,8 +212,8 @@ function findHostInstanceWithWarning(
 }
 /**
  * 创建FiberRoot
- * @param {*} containerInfo 
- * @param {*} tag 
+ * @param {*} containerInfo  容器
+ * @param {*} tag     root类型标识
  * @param {*} hydrate 
  * @param {*} hydrationCallbacks 
  */
@@ -230,16 +230,21 @@ export function createContainer(
  * 更新容器
  */
 export function updateContainer(
-  element: ReactNodeList,
-  container: OpaqueRoot,
-  parentComponent: ?React$Component<any, any>,
-  callback: ?Function,
+  element: ReactNodeList,  //子组件 (react元素)---app组件
+  container: OpaqueRoot,  //fiberRoot
+  parentComponent: ?React$Component<any, any>, //父组件
+  callback: ?Function, //回调函数
 ): ExpirationTime {
   if (__DEV__) {
     onScheduleRoot(container, element);
   }
+  /**
+   * 1、FiberRoot中取出RootFiber对象
+   */
   const current = container.current;
-  // 计算更新开始的时间
+  /**
+   * 2、计算更新开始的时间 （获得当前的时间）
+   */
   const currentTime = requestCurrentTimeForUpdate();
   if (__DEV__) {
     // $FlowExpectedError - jest isn't a global, and isn't recognized outside of tests
@@ -248,14 +253,23 @@ export function updateContainer(
       warnIfNotScopedWithMatchingAct(current);
     }
   }
+  /**
+   * 3、
+   */
   const suspenseConfig = requestCurrentSuspenseConfig();
-  //计算过期时间，这是React优先级更新非常重要的点。
+  /**
+   * 4、计算fiber过期时间，代表优先级。 
+   * expirationTime 代表优先级，数字越大优先级越高
+   * 这里是同步渲染，expirationTime 设置为最大值
+   */
   const expirationTime = computeExpirationForFiber(
     currentTime,
     current,
     suspenseConfig,
   );
-
+  /**
+   * 5、获取到父组件内容 ，初始化返回空对象
+   */
   const context = getContextForSubtree(parentComponent);
   if (container.context === null) {
     container.context = context;
@@ -279,12 +293,16 @@ export function updateContainer(
       );
     }
   }
-
+  /**
+   * 6、创建一个update对象
+   */
   const update = createUpdate(expirationTime, suspenseConfig);
   // Caution: React DevTools currently depends on this property
   // being called "element".
+  // 将虚拟dom（子组件）放入payload 
   update.payload = {element};
 
+  //render中的回调函数
   callback = callback === undefined ? null : callback;
   if (callback !== null) {
     if (__DEV__) {
@@ -298,8 +316,13 @@ export function updateContainer(
     }
     update.callback = callback;
   }
-
+  /**
+   * 7、把 update 加入更新队列,将 update 对象植入 current fiber 中
+   */
   enqueueUpdate(current, update);
+  /**
+   * 8、安排工作
+   */
   scheduleWork(current, expirationTime);
 
   return expirationTime;

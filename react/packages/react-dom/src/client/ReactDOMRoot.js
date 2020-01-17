@@ -64,10 +64,16 @@ function ReactDOMBlockingRoot(
   this._internalRoot = createRootImpl(container, tag, options);
 }
 
+/**
+ * 渲染方法
+ */
 ReactDOMRoot.prototype.render = ReactDOMBlockingRoot.prototype.render = function(
   children: ReactNodeList,
   callback: ?() => mixed,
 ): void {
+  /**
+   * 1、FiberRootNode （Fiber根节点）
+   */
   const root = this._internalRoot;
   const cb = callback === undefined ? null : callback;
   if (__DEV__) {
@@ -108,10 +114,15 @@ function createRootImpl(
   const hydrate = options != null && options.hydrate === true;
   const hydrationCallbacks =
     (options != null && options.hydrationOptions) || null;
-  // 创建创建FiberRoot 
+   /**
+    * 1、创建根节点
+    */
   const root = createContainer(container, tag, hydrate, hydrationCallbacks);
-  
+  /**
+   * 2、在根节点上添加属性 '__reactContainere$' + randomKey ，执行当前节点
+   */
   markContainerAsRoot(root.current, container);
+  //服务端
   if (hydrate && tag !== LegacyRoot) {
     const doc =
       container.nodeType === DOCUMENT_NODE
@@ -119,6 +130,7 @@ function createRootImpl(
         : container.ownerDocument;
     eagerlyTrapReplayableEvents(doc);
   }
+  //3、return root
   return root;
 }
 

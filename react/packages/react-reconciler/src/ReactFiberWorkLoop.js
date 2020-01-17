@@ -382,7 +382,8 @@ export function scheduleUpdateOnFiber(
 ) {
   checkForNestedUpdates();
   warnAboutInvalidUpdatesOnClassComponentsInDEV(fiber);
-
+  
+  // 获取到 FiberRoot
   const root = markUpdateTimeFromFiberToRoot(fiber, expirationTime);
   if (root === null) {
     warnAboutUpdateOnUnmountedFiberInDEV(fiber);
@@ -395,7 +396,7 @@ export function scheduleUpdateOnFiber(
   // TODO: computeExpirationForFiber also reads the priority. Pass the
   // priority as an argument to that function and this one.
   const priorityLevel = getCurrentPriorityLevel();
-
+   // 如果是同步事件
   if (expirationTime === Sync) {
     if (
       // Check if we're inside unbatchedUpdates

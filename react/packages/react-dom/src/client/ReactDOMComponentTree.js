@@ -25,7 +25,9 @@ const internalContainerInstanceKey = '__reactContainere$' + randomKey;
 export function precacheFiberNode(hostInst, node) {
   node[internalInstanceKey] = hostInst;
 }
-
+/**
+ * 将react根节点赋到容器的一个属性上
+*/
 export function markContainerAsRoot(hostRoot, node) {
   node[internalContainerInstanceKey] = hostRoot;
 }

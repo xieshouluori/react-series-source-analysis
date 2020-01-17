@@ -120,6 +120,7 @@ export type FiberRoot = {
   ...SuspenseCallbackOnlyFiberRootProperties,
 };
 
+
 function FiberRootNode(containerInfo, tag, hydrate) {
   this.tag = tag;
   this.current = null;
@@ -164,7 +165,7 @@ export function createFiberRoot(
   hydrationCallbacks: null | SuspenseHydrationCallbacks,
 ): FiberRoot {
   /**
-   * 创建root 返回FiberRootNode的实例（包含多个属性）
+   * 1、创建root 返回FiberRootNode的实例（包含多个属性）
    */
   const root: FiberRoot = (new FiberRootNode(containerInfo, tag, hydrate): any);
   if (enableSuspenseCallback) {
@@ -173,12 +174,15 @@ export function createFiberRoot(
 
 
   /**
-   * 创建uninitializedFiber
+   * 2、调用createHostRootFiber生成一个FiberNode对象， 赋给root.current。
+   * 这是一个循环结构
    */
   const uninitializedFiber = createHostRootFiber(tag);
   root.current = uninitializedFiber;
   uninitializedFiber.stateNode = root;
-
+  /**
+   * 3、初始化更新队列 root.current.updateQueue
+   */
   initializeUpdateQueue(uninitializedFiber);
 
   return root;

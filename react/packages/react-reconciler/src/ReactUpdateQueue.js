@@ -162,6 +162,10 @@ if (__DEV__) {
   };
 }
 
+/**
+ * 初始化 队列，并赋值给fiber.updateQueue
+ * @param {*} fiber  FiberNode
+ */
 export function initializeUpdateQueue<State>(fiber: Fiber): void {
   const queue: UpdateQueue<State> = {
     baseState: fiber.memoizedState,
@@ -191,19 +195,30 @@ export function cloneUpdateQueue<State>(
     workInProgress.updateQueue = clone;
   }
 }
-
+/**
+ * 创建 update 对象
+ * @param {*} expirationTime 
+ * @param {*} suspenseConfig 
+ */
 export function createUpdate(
   expirationTime: ExpirationTime,
   suspenseConfig: null | SuspenseConfig,
 ): Update<*> {
   let update: Update<*> = {
+    // 更新的过期时间
     expirationTime,
     suspenseConfig,
-
+    // 指定更新的类型,为以下4种
+    // export const UpdateState = 0;
+    // export const ReplaceState = 1;
+    // export const ForceUpdate = 2;
+    // export const CaptureUpdate = 3;
     tag: UpdateState,
+    // 更新内容，比如`setState`接收的第一个参数
     payload: null,
+    // 对应的回调，`setState`，`render`都有
     callback: null,
-
+    // 指向下一个更新
     next: (null: any),
   };
   update.next = update;
@@ -212,7 +227,11 @@ export function createUpdate(
   }
   return update;
 }
-
+/**
+ * 将update加入到Fiber的updateQueue中
+ * @param {*} fiber 
+ * @param {*} update 
+ */
 export function enqueueUpdate<State>(fiber: Fiber, update: Update<State>) {
   const updateQueue = fiber.updateQueue;
   if (updateQueue === null) {

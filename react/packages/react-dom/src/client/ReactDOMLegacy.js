@@ -127,7 +127,7 @@ function shouldHydrateDueToLegacyHeuristic(container) {
   );
 }
 /**
- * //创建ReactRooter
+ * 创建React根节点
  * @param {*} container  容器
  * @param {*} forceHydrate  是否服务端渲染
  */
